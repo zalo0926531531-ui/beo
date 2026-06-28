@@ -1,0 +1,434 @@
+
+-- ===== KHỞI TẠO =====
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local TeleportService = game:GetService("TeleportService")
+local VirtualUser = game:GetService("VirtualUser")
+local StarterGui = game:GetService("StarterGui")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+-- ===== CẤU HÌNH =====
+local config = {
+    AutoFarm = true,
+    AutoCollect = true,
+    AutoRaid = true,
+    AutoQuest = true,
+    AutoHeal = true,
+    ESP = true,
+    AutoStats = true,
+    StatPriority = "Melee",
+    AutoBuy = true,
+    BuyItems = {"Dark Coat","Kabucha","Acidum Rifle"},
+    FruitSniper = true,
+    SniperFruits = {"Leopard","Dragon","Dough","Venom","Spirit","Control","Kitsune","Mammoth"},
+    AutoBeli = true,
+    AutoMastery = true,
+    MasteryType = "Sword",
+    SeaEvent = true,
+    TeleportHub = true,
+    RaidFarm = true,
+    AntiAFK = true,
+    HopServer = true,
+    AutoBossFarm = true,
+    AutoHaki = true,
+    AutoFragment = true,
+    WalkSpeed = 90,
+    JumpPower = 90,
+    FarmRadius = 450,
+    AttackCooldown = 0.1,
+    HealThreshold = 0.3,
+    PriorityFruits = {"Leopard","Dragon","Dough","Venom","Spirit","Control","Kitsune","Mammoth"},
+}
+
+-- ===== TẠO GUI VỚI ẢNH PINTEREST =====
+local gui = Instance.new("ScreenGui")
+gui.Name = "OreoHub"
+gui.Parent = player:WaitForChild("PlayerGui") or StarterGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 550, 0, 480)
+mainFrame.Position = UDim2.new(0.5, -275, 0.5, -240)
+mainFrame.BackgroundTransparency = 0.2
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 20, 40)
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = gui
+
+-- Ảnh nền từ Pinterest (đã cập nhật link của bạn)
+local bgImage = Instance.new("ImageLabel")
+bgImage.Size = UDim2.new(1, 0, 1, 0)
+bgImage.BackgroundTransparency = 1
+bgImage.Image = "https://i.pinimg.com/736x/25/1d/92/251d927c0ecf521d14d5b373e8c32df1.jpg"  -- Link của bạn
+bgImage.ImageTransparency = 0.3
+bgImage.Parent = mainFrame
+
+-- Tiêu đề
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 50)
+title.Position = UDim2.new(0, 0, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "🍪 OREO HUB 🍪"
+title.TextColor3 = Color3.fromRGB(255, 220, 240)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 28
+title.TextStrokeTransparency = 0.3
+title.Parent = mainFrame
+
+-- Nút chức năng
+local grid = Instance.new("Frame")
+grid.Size = UDim2.new(1, -20, 1, -70)
+grid.Position = UDim2.new(0, 10, 0, 60)
+grid.BackgroundTransparency = 1
+grid.Parent = mainFrame
+
+local funcs = {"Farm","Collect","Raid","Quest","ESP","Sniper","Boss","Haki","Stats","Teleport"}
+local cols = 3
+local rows = math.ceil(#funcs / cols)
+local bw = (grid.Size.X.Offset - (cols-1)*8) / cols
+local bh = (grid.Size.Y.Offset - (rows-1)*8) / rows
+
+for i, name in ipairs(funcs) do
+    local row = math.floor((i-1) / cols)
+    local col = (i-1) % cols
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, bw, 0, bh)
+    btn.Position = UDim2.new(0, col*(bw+8), 0, row*(bh+8))
+    btn.BackgroundColor3 = Color3.fromRGB(80, 60, 100)
+    btn.BackgroundTransparency = 0.2
+    btn.Text = name .. "\nON"
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSans
+    btn.TextSize = 16
+    btn.TextWrapped = true
+    btn.Parent = grid
+    
+    local field = name
+    if field == "Farm" then field = "AutoFarm"
+    elseif field == "Collect" then field = "AutoCollect"
+    elseif field == "Raid" then field = "AutoRaid"
+    elseif field == "Quest" then field = "AutoQuest"
+    elseif field == "ESP" then field = "ESP"
+    elseif field == "Sniper" then field = "FruitSniper"
+    elseif field == "Boss" then field = "AutoBossFarm"
+    elseif field == "Haki" then field = "AutoHaki"
+    elseif field == "Stats" then field = "AutoStats"
+    elseif field == "Teleport" then field = "TeleportHub"
+    end
+    
+    btn.MouseButton1Click:Connect(function()
+        config[field] = not config[field]
+        btn.Text = name .. "\n" .. (config[field] and "ON" or "OFF")
+        player:Chat(name .. " " .. (config[field] and "BẬT" or "TẮT"))
+    end)
+end
+
+-- ===== HÀM CHÍNH =====
+local function findRemote(possibleNames)
+    for _, container in pairs({ReplicatedStorage, Workspace}) do
+        for _, name in ipairs(possibleNames) do
+            local rem = container:FindFirstChild(name)
+            if rem and rem:IsA("RemoteEvent") then return rem end
+        end
+        for _, child in pairs(container:GetDescendants()) do
+            if child:IsA("RemoteEvent") then
+                for _, name in ipairs(possibleNames) do
+                    if string.find(child.Name, name) then return child end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local cache = {Attack = nil, Collect = nil, Heal = nil, Quest = nil}
+local function getRemote(name)
+    if cache[name] then return cache[name] end
+    local names = {Attack={"Combat","Attack","Click","Hit"}, Collect={"Collect","Pickup","Grab"}, Heal={"Heal","Restore","Recover"}, Quest={"Quest","Mission","Accept"}}
+    local rem = findRemote(names[name] or {})
+    cache[name] = rem
+    return rem
+end
+
+local function getNearestMonster()
+    local best, dist = nil, math.huge
+    local kw = {"NPC","Boss","Monster","Enemy","Mob","Pirate","Bandit","Gorilla","Swan","Diamond"}
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then
+            if v ~= character and v.Humanoid.Health > 0 then
+                for _, k in ipairs(kw) do
+                    if (v.Name or ""):find(k) then
+                        local d = (rootPart.Position - v.HumanoidRootPart.Position).Magnitude
+                        if d < dist and d < config.FarmRadius then best = v; dist = d end
+                        break
+                    end
+                end
+            end
+        end
+    end
+    return best
+end
+
+local function getNearestFruit()
+    local best, dist = nil, math.huge
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("Part") and (v.Name:find("Fruit") or v.Name:find("Banana") or v:FindFirstChild("Handle")) then
+            local name = v.Name
+            if v.Parent and v.Parent:FindFirstChild("Name") then name = v.Parent.Name end
+            local pre = false
+            for _, p in pairs(config.PriorityFruits) do
+                if name:find(p) then pre = true; break end
+            end
+            local d = (rootPart.Position - v.Position).Magnitude
+            if pre and d < dist and d < 600 then best = v; dist = d
+            elseif not pre and d < dist and d < 400 then best = v; dist = d end
+        end
+    end
+    return best
+end
+
+local function attackMonster(target)
+    if not target then return end
+    pcall(function()
+        rootPart.CFrame = CFrame.new(rootPart.Position, target.HumanoidRootPart.Position)
+        local atk = getRemote("Attack")
+        if atk then atk:FireServer("Click") end
+    end)
+end
+
+local function collectFruit(fruit)
+    if not fruit then return end
+    pcall(function()
+        rootPart.CFrame = CFrame.new(fruit.Position + Vector3.new(0,2.5,0))
+        local touch = fruit:FindFirstChild("TouchInterest")
+        if touch then touch:FireServer() end
+        local col = getRemote("Collect")
+        if col then col:FireServer(fruit) end
+        player:Chat("🍌 Nhặt: " .. (fruit.Name or "Trái"))
+    end)
+end
+
+local function heal()
+    if humanoid.Health / humanoid.MaxHealth < config.HealThreshold then
+        pcall(function()
+            local pack = player:FindFirstChild("Backpack") or player:FindFirstChild("Inventory")
+            if pack then
+                for _, item in pairs(pack:GetDescendants()) do
+                    if item:IsA("Tool") and (item.Name:find("Potion") or item.Name:find("Heal") or item.Name:find("Food")) then
+                        item.Parent = character; item:Activate(); wait(0.3); item.Parent = pack; return
+                    end
+                end
+            end
+            local healR = getRemote("Heal")
+            if healR then healR:FireServer() end
+        end)
+    end
+end
+
+local function autoQuest()
+    pcall(function()
+        local npcs = {"Monkey","Gorilla","Pirate","Bandit","Swan","Diamond","Jungle","Ice","Magma","Fishman","NPC"}
+        for _, name in pairs(npcs) do
+            local npc = Workspace:FindFirstChild(name)
+            if npc and npc:FindFirstChild("HumanoidRootPart") then
+                if (rootPart.Position - npc.HumanoidRootPart.Position).Magnitude < 30 then
+                    local click = npc:FindFirstChild("ClickDetector")
+                    if click then click:FireClick() end
+                    local q = getRemote("Quest")
+                    if q then q:FireServer("Accept", npc) end
+                    break
+                end
+            end
+        end
+    end)
+end
+
+local function raidFarm()
+    pcall(function()
+        local raid = Workspace:FindFirstChild("RaidNPC") or Workspace:FindFirstChild("MysteriousBeing")
+        if raid then
+            rootPart.CFrame = raid.HumanoidRootPart.CFrame * CFrame.new(0,0,-3)
+            local click = raid:FindFirstChild("ClickDetector")
+            if click then click:FireClick() end
+        end
+    end)
+end
+
+local function fruitSniper()
+    if not config.FruitSniper then return end
+    pcall(function()
+        for _, v in pairs(Workspace:GetDescendants()) do
+            if v:IsA("Part") and v.Name:find("Fruit") then
+                local name = v.Name
+                for _, target in ipairs(config.SniperFruits) do
+                    if name:find(target) then
+                        local d = (rootPart.Position - v.Position).Magnitude
+                        if d < 500 then
+                            rootPart.CFrame = CFrame.new(v.Position + Vector3.new(0,2,0))
+                            wait(0.3)
+                            local touch = v:FindFirstChild("TouchInterest")
+                            if touch then touch:FireServer() end
+                            player:Chat("🎯 SNIPER: " .. target)
+                            return
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function teleportHub()
+    pcall(function()
+        local locs = {"Jungle", "Magma", "Ice", "Fishman", "Pirate", "Marine"}
+        for _, name in pairs(locs) do
+            local loc = Workspace:FindFirstChild(name)
+            if loc and loc:FindFirstChild("HumanoidRootPart") then
+                rootPart.CFrame = loc.HumanoidRootPart.CFrame * CFrame.new(0,5,5)
+                break
+            end
+        end
+    end)
+end
+
+local function hopServer()
+    if not config.HopServer then return end
+    pcall(function()
+        local count = 0
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= player then
+                local char = plr.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local d = (rootPart.Position - char.HumanoidRootPart.Position).Magnitude
+                    if d < 200 then count = count + 1 end
+                end
+            end
+        end
+        if count >= 3 then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, TeleportService:GetRandomJobId())
+        end
+    end)
+end
+
+-- ESP
+local espFolder = Instance.new("Folder", Workspace)
+espFolder.Name = "OreoESP"
+local function createESP(obj)
+    if not config.ESP then return end
+    pcall(function()
+        if not obj:IsA("Model") or not obj:FindFirstChild("HumanoidRootPart") then return end
+        if obj == character then return end
+        local box = Instance.new("BoxHandleAdornment")
+        box.Adornee = obj.HumanoidRootPart
+        box.Size = Vector3.new(4,6,2)
+        box.Color3 = obj:FindFirstChild("Humanoid") and Color3.new(1,0,0) or Color3.new(0,1,0)
+        box.Transparency = 0.3
+        box.AlwaysOnTop = true
+        box.Parent = espFolder
+        local tag = Instance.new("BillboardGui")
+        tag.Adornee = obj.HumanoidRootPart
+        tag.Size = UDim2.new(0,200,0,50)
+        tag.StudsOffset = Vector3.new(0,3,0)
+        tag.AlwaysOnTop = true
+        local label = Instance.new("TextLabel", tag)
+        label.Size = UDim2.new(1,0,1,0)
+        label.BackgroundTransparency = 1
+        label.Text = obj.Name .. (obj:FindFirstChild("Humanoid") and " HP:" .. math.floor(obj.Humanoid.Health) or "")
+        label.TextColor3 = Color3.new(1,1,0)
+        label.TextScaled = true
+        tag.Parent = espFolder
+    end)
+end
+Workspace.DescendantAdded:Connect(createESP)
+for _, v in pairs(Workspace:GetDescendants()) do createESP(v) end
+
+-- ===== VÒNG LẶP CHÍNH =====
+local timers = {atk=0, quest=0, raid=0, heal=0, sniper=0, hop=0}
+
+RunService.Heartbeat:Connect(function(dt)
+    pcall(function()
+        humanoid.WalkSpeed = config.WalkSpeed
+        humanoid.JumpPower = config.JumpPower
+        
+        timers.heal = timers.heal + dt
+        if timers.heal >= 1.5 and config.AutoHeal then heal(); timers.heal = 0 end
+        
+        timers.quest = timers.quest + dt
+        if timers.quest >= 20 and config.AutoQuest then autoQuest(); timers.quest = 0 end
+        
+        timers.raid = timers.raid + dt
+        if timers.raid >= 40 and config.AutoRaid then raidFarm(); timers.raid = 0 end
+        
+        timers.sniper = timers.sniper + dt
+        if timers.sniper >= 5 and config.FruitSniper then fruitSniper(); timers.sniper = 0 end
+        
+        timers.hop = timers.hop + dt
+        if timers.hop >= 30 and config.HopServer then hopServer(); timers.hop = 0 end
+        
+        if config.AntiAFK then
+            pcall(function() VirtualUser:CaptureController(); VirtualUser:ClickButton2(Vector2.new()) end)
+        end
+        
+        if config.AutoCollect then
+            local fruit = getNearestFruit()
+            if fruit then
+                local d = (rootPart.Position - fruit.Position).Magnitude
+                if d < 8 then collectFruit(fruit)
+                else rootPart.CFrame = CFrame.new(fruit.Position + Vector3.new(0,2,0)) end
+                return
+            end
+        end
+        
+        if config.AutoFarm then
+            local monster
+            if config.AutoBossFarm then
+                local boss = nil
+                for _, v in pairs(Workspace:GetDescendants()) do
+                    if v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then
+                        if v.Name:find("Boss") and v.Humanoid.Health > 0 then boss = v; break end
+                    end
+                end
+                monster = boss
+            else
+                monster = getNearestMonster()
+            end
+            if monster then
+                local d = (rootPart.Position - monster.HumanoidRootPart.Position).Magnitude
+                if d > 8 then rootPart.CFrame = monster.HumanoidRootPart.CFrame * CFrame.new(0,0,-4)
+                else rootPart.CFrame = CFrame.new(rootPart.Position, monster.HumanoidRootPart.Position) end
+                if timers.atk <= 0 and d < 20 then
+                    attackMonster(monster); timers.atk = config.AttackCooldown
+                else timers.atk = timers.atk - dt end
+            end
+        end
+    end)
+end)
+
+-- ===== PHÍM TẮT =====
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    pcall(function()
+        local k = input.KeyCode
+        if k == Enum.KeyCode.F1 then config.AutoFarm = not config.AutoFarm
+        elseif k == Enum.KeyCode.F2 then config.AutoCollect = not config.AutoCollect
+        elseif k == Enum.KeyCode.F3 then config.ESP = not config.ESP; espFolder.Enabled = config.ESP
+        elseif k == Enum.KeyCode.F4 then config.AutoRaid = not config.AutoRaid
+        elseif k == Enum.KeyCode.F5 then config.AutoQuest = not config.AutoQuest
+        elseif k == Enum.KeyCode.F6 then config.FruitSniper = not config.FruitSniper
+        elseif k == Enum.KeyCode.F7 then config.AutoBossFarm = not config.AutoBossFarm
+        elseif k == Enum.KeyCode.F8 then config.AutoHaki = not config.AutoHaki
+        elseif k == Enum.KeyCode.F9 then config.AutoStats = not config.AutoStats
+        elseif k == Enum.KeyCode.F12 then gui.Enabled = not gui.Enabled end
+    end)
+end)
+
+print("🍪 OREO HUB - ĐANG CHẠY VỚI ẢNH PINTEREST")
+print("🔥 F1:Farm | F2:Collect | F3:ESP | F4:Raid | F5:Quest | F6:Sniper | F12:GUI")
+player:Chat("🍪 OREO HUB - CHƠI NGON!")
+gui.Enabled = true
