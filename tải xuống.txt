@@ -1,0 +1,135 @@
+
+-- ===== KHỞI TẠO =====
+local player = game:GetService("Players").LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+local workspace = game:GetService("Workspace")
+local runService = game:GetService("RunService")
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local userInput = game:GetService("UserInputService")
+
+-- ===== CẤU HÌNH (CHỈNH SỬA THEO Ý MUỐN) =====
+local config = {
+    AutoFarm = true,
+    AutoCollect = true,
+    AutoRaid = true,
+    AutoQuest = true,
+    AutoHeal = true,
+    ESP = true,
+    WalkSpeed = 100,
+    JumpPower = 100,
+    FarmRadius = 500,
+    AttackCooldown = 0.08,
+    HealThreshold = 0.25,
+    PriorityFruits = {"Leopard","Dragon","Dough","Venom","Spirit","Control","Kitsune","Mammoth","T-Rex"},
+}
+
+-- ===== THÔNG BÁO =====
+player:Chat("🚀 SCRIPT BLOX FRUITS ULTIMATE LOADED")
+player:Chat("🔥 F1:Farm | F2:Collect | F3:ESP | F4:Raid")
+player:Chat("⚡ CHƠI BÁ ĐẠO - NHẶT TRÁI NHƯ MÁY")
+
+-- ===== CACHE =====
+local monsterCache = {best = nil, time = 0}
+local fruitCache = {best = nil, time = 0}
+
+-- ===== HÀM TÌM QUÁI =====
+local function getNearestMonster()
+    if tick() - monsterCache.time < 0.3 then return monsterCache.best end
+    monsterCache.time = tick()
+    local best, bestDist = nil, math.huge
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then
+            if v ~= character and v.Humanoid.Health > 0 and v.Name:match("NPC") or v.Name:match("Boss") or v.Name:match("Monster") then
+                local d = (rootPart.Position - v.HumanoidRootPart.Position).Magnitude
+                if d < bestDist and d < config.FarmRadius then
+                    best = v; bestDist = d
+                end
+            end
+        end
+    end
+    monsterCache.best = best
+    return best
+end
+
+-- ===== HÀM TÌM TRÁI =====
+local function getNearestFruit()
+    if tick() - fruitCache.time < 0.3 then return fruitCache.best end
+    fruitCache.time = tick()
+    local best, bestDist = nil, math.huge
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Part") and (v.Name:find("Fruit") or v.Name:find("Banana") or v:FindFirstChild("Handle")) then
+            local name = v.Name
+            if v.Parent and v.Parent:FindFirstChild("Name") then name = v.Parent.Name end
+            local isPremium = false
+            for _, p in pairs(config.PriorityFruits) do
+                if name:find(p) then isPremium = true; break end
+            end
+            local d = (rootPart.Position - v.Position).Magnitude
+            if isPremium and d < bestDist and d < 600 then
+                best = v; bestDist = d
+            elseif not isPremium and d < bestDist and d < 400 then
+                best = v; bestDist = d
+            end
+        end
+    end
+    fruitCache.best = best
+    return best
+end
+
+-- ===== TẤN CÔNG =====
+local function attackMonster(target)
+    if not target then return end
+    rootPart.CFrame = CFrame.new(rootPart.Position, target.HumanoidRootPart.Position)
+    local atk = replicatedStorage:FindFirstChild("Combat") or replicatedStorage:FindFirstChild("Attack")
+    if atk then atk:FireServer("Click")
+    else
+        for _, rem in pairs(replicatedStorage:GetDescendants()) do
+            if rem:IsA("RemoteEvent") and (rem.Name:find("Attack") or rem.Name:find("Hit")) then
+                rem:FireServer(target); break
+            end
+        end
+    end
+end
+
+-- ===== NHẶT TRÁI =====
+local function collectFruit(fruit)
+    if not fruit then return end
+    rootPart.CFrame = CFrame.new(fruit.Position + Vector3.new(0, 2.5, 0))
+    local touch = fruit:FindFirstChild("TouchInterest")
+    if touch then touch:FireServer() end
+    for _, rem in pairs(replicatedStorage:GetDescendants()) do
+        if rem:IsA("RemoteEvent") and (rem.Name:find("Collect") or rem.Name:find("Pickup")) then
+            rem:FireServer(fruit); break
+        end
+    end
+    local name = fruit.Name
+    if fruit.Parent and fruit.Parent:FindFirstChild("Name") then name = fruit.Parent.Name end
+    player:Chat("🍌 Nhặt: " .. name)
+end
+
+-- ===== ESP =====
+local espFolder = Instance.new("Folder", workspace)
+espFolder.Name = "BloxUltimate_ESP"
+local function createESP(obj)
+    if not config.ESP or not obj:IsA("Model") or not obj:FindFirstChild("HumanoidRootPart") then return end
+    if obj == character or not obj:FindFirstChild("Humanoid") then return end
+    local box = Instance.new("BoxHandleAdornment")
+    box.Adornee = obj.HumanoidRootPart
+    box.Size = Vector3.new(5, 7, 3)
+    box.Color3 = obj.Name:find("Boss") and Color3.new(1, 0.5, 0) or Color3.new(1, 0, 0)
+    box.Transparency = 0.3
+    box.AlwaysOnTop = true
+    box.Parent = espFolder
+    local tag = Instance.new("BillboardGui")
+    tag.Adornee = obj.HumanoidRootPart
+    tag.Size = UDim2.new(0, 300, 0, 60)
+    tag.StudsOffset = Vector3.new(0, 4, 0)
+    tag.AlwaysOnTop = true
+    local label = Instance.new("TextLabel", tag)
+    label.Size = UDim2.new(1,0,1,0)
+    label.BackgroundTransparency = 1
+    label.Text = obj.Name .. " - " .. math.floor(obj.Humanoid.Health) .. " HP"
+    label.TextColor3 = Color3.new(1,1,0)
+    lab
