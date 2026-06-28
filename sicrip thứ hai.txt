@@ -1,0 +1,247 @@
+
+-- TỰ ĐỘNG MỞ
+local function AutoExecute()
+    if not game:IsLoaded() then game.Loaded:Wait() end
+    CreateUI()
+end
+
+function CreateUI()
+    -- Tải thư viện UI
+    local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/7GrandDadPNG/UI-Libraries/main/7GrandDadGUI"))()
+    local Window = Library:CreateWindow("Zynex Hub Premium", Vector2.new(0, 0), true)
+
+    -- BẢNG TRẠNG THÁI
+    local Z = {
+        AutoFarmLevel = false,
+        AutoFarmBoss = false,
+        AutoCollectChest = false,
+        AutoFish = false,
+        AutoQuest = false,
+        AutoRaid = false,
+        AutoBounty = false,
+        AutoMastery = false,
+        AutoFactory = false,
+        AutoSeaBeast = false,
+        AutoShipRaid = false,
+        AutoRaceFarm = false,
+        AutoSword = false,
+        AutoGun = false,
+        Auto8Belts = false,
+        AutoBeli = false,
+        AutoBones = false,
+        AutoFragments = false,
+        AutoStoreFruit = false,
+        AutoStatsDist = false,
+        AutoRejoinDeath = false,
+        ESPEnabled = false,
+        ESPAdvanced = false,
+        HopServer = false,
+        HopInterval = 300,
+        BypassAC = false,
+        FakeStats = false,
+        AutoRejoin = false,
+        UseFly = false,
+        FlyHeight = 6,
+        AttackDelayMin = 0.4,
+        AttackDelayMax = 0.75,
+        PauseAfterHits = 15,
+        PauseDuration = 1.5,
+        RangeLimit = 50,
+        RaceType = "Human",
+        TargetRaceLevel = 3,
+        TargetSword = "Saber",
+        TargetGun = "Flintlock",
+        BeliMethod = "Quái thường",
+        TargetBeli = 100000,
+        BuyItem = "Potion",
+        BuyQuantity = 10,
+        SellCategory = "Weapons",
+        AutoJoinGame = false,
+        AutoSwitchStuck = false,
+        StuckCheckInterval = 30,
+        LastPosition = Vector3.new(0,0,0),
+        StuckTimer = 0,
+        AutoUseItems = false,
+        AutoDropItems = false,
+        FruitSniper = false,
+        PvPMode = false,
+        AimBot = false,
+        GamepassAutoBuy = false,
+        SelectedMap = "Jungle",
+        AutoUseFruit = false,
+        AutoCollectNearby = false,
+        AntiAFK = false,
+        NotificationSound = false,
+        DiscordWebhook = false,
+        WebhookURL = "",
+        HotkeyToggle = Enum.KeyCode.F9,
+        Player = game.Players.LocalPlayer,
+    }
+
+    local player = Z.Player
+
+    -- HÀM HOP SERVER
+    local function HopServer()
+        game:GetService("TeleportService"):Teleport(game.PlaceId)
+    end
+
+    -- HÀM ANTI-CHEAT (GIẢ LẬP)
+    local function AntiCheatBypass()
+        spawn(function()
+            while Z.BypassAC do
+                for _, v in pairs(getgc(true)) do
+                    if type(v) == "table" and rawget(v, "IsExecuting") then
+                        setreadonly(v, false)
+                        v.IsExecuting = false
+                    end
+                end
+                wait(5)
+            end
+        end)
+    end
+
+    -- ==================== TAB HOME ====================
+    local T1 = Window:CreateTab("🏠 Home")
+    local S1 = T1:CreateSection("Player Info")
+    S1:CreateLabel("Name: " .. player.Name)
+    S1:CreateLabel("Level: " .. (player.Data and player.Data.Level or 0))
+    S1:CreateLabel("Fruit: " .. (player.Data and player.Data.Fruit or "None"))
+    S1:CreateButton("Hop Server", HopServer)
+
+    -- ==================== TAB FARMING ====================
+    local T2 = Window:CreateTab("⚔️ Farming")
+    local S2a = T2:CreateSection("Auto Farm Level")
+    S2a:CreateToggle("Enable", function(s) Z.AutoFarmLevel = s end)
+    S2a:CreateSlider("Range", 10, 100, 50, function(v) Z.RangeLimit = v end)
+    S2a:CreateSlider("Attack Delay Min (s)", 0.1, 1.0, 0.4, function(v) Z.AttackDelayMin = v end)
+    S2a:CreateSlider("Attack Delay Max (s)", 0.1, 1.0, 0.75, function(v) Z.AttackDelayMax = v end)
+    S2a:CreateSlider("Pause after hits", 5, 30, 15, function(v) Z.PauseAfterHits = v end)
+    S2a:CreateSlider("Pause duration (s)", 0.5, 5.0, 1.5, function(v) Z.PauseDuration = v end)
+    S2a:CreateToggle("Use Fly when moving", function(s) Z.UseFly = s end)
+    S2a:CreateSlider("Fly Height", 0, 20, 6, function(v) Z.FlyHeight = v end)
+
+    local S2b = T2:CreateSection("Auto Farm Boss")
+    S2b:CreateToggle("Enable", function(s) Z.AutoFarmBoss = s end)
+
+    -- ==================== TAB SETTING ====================
+    local T3 = Window:CreateTab("⚙️ Setting")
+    local S3a = T3:CreateSection("General")
+    S3a:CreateToggle("Auto Hop Server", function(s) Z.HopServer = s end)
+    S3a:CreateSlider("Hop Interval (s)", 60, 600, 300, function(v) Z.HopInterval = v end)
+    S3a:CreateButton("Hop Now", HopServer)
+    local S3b = T3:CreateSection("Cheats")
+    S3b:CreateSlider("WalkSpeed", 16, 200, 16, function(v)
+        if player and player.Character then
+            local h = player.Character:FindFirstChild("Humanoid")
+            if h then h.WalkSpeed = v end
+        end
+    end)
+    S3b:CreateSlider("JumpPower", 50, 500, 50, function(v)
+        if player and player.Character then
+            local h = player.Character:FindFirstChild("Humanoid")
+            if h then h.JumpPower = v end
+        end
+    end)
+
+    -- ==================== TAB ANTI-CHEAT ====================
+    local T4 = Window:CreateTab("🛡️ Anti-Cheat")
+    local S4 = T4:CreateSection("Bypass")
+    S4:CreateToggle("Enable Bypass", function(s) Z.BypassAC = s if s then AntiCheatBypass() end end)
+    S4:CreateToggle("Auto Rejoin on detection", function(s) Z.AutoRejoin = s end)
+    S4:CreateToggle("Fake Stats", function(s) Z.FakeStats = s end)
+
+    -- ==================== TAB AUTO SWITCH ====================
+    local T5 = Window:CreateTab("🔄 Auto Switch")
+    local S5 = T5:CreateSection("Stuck Detection")
+    S5:CreateToggle("Enable Auto Switch when stuck", function(s) Z.AutoSwitchStuck = s end)
+    S5:CreateSlider("Stuck timeout (s)", 10, 120, 30, function(v) Z.StuckCheckInterval = v end)
+    S5:CreateButton("Switch Now", HopServer)
+
+    -- ==================== VÒNG LẶP FARM CHÍNH (CÓ THỂ CHẠY) ====================
+    spawn(function()
+        local hitCount = 0
+        while wait(0.1) do
+            if Z.AutoFarmLevel and player and player.Character then
+                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                local humanoid = player.Character:FindFirstChild("Humanoid")
+                if hrp and humanoid then
+                    -- === GIẢ LẬP TÌM QUÁI ===
+                    local target = nil
+                    -- Tìm NPC trong workspace (chỉ demo)
+                    for _, v in pairs(workspace:GetChildren()) do
+                        if v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then
+                            local dist = (hrp.Position - v.HumanoidRootPart.Position).Magnitude
+                            if dist <= Z.RangeLimit and v:FindFirstChild("Humanoid").Health > 0 then
+                                target = v
+                                break
+                            end
+                        end
+                    end
+                    if target then
+                        -- Hạ cánh
+                        if hrp.Velocity.Y > 1 then
+                            hrp.Velocity = Vector3.new(0, -5, 0)
+                        end
+                        -- Quay về hướng quái (giả)
+                        -- Đánh
+                        print("Tấn công: " .. target.Name)
+                        hitCount = hitCount + 1
+                        local delay = math.random(Z.AttackDelayMin * 100, Z.AttackDelayMax * 100) / 100
+                        task.wait(delay)
+                        if hitCount >= Z.PauseAfterHits then
+                            task.wait(Z.PauseDuration + math.random() * 1.0)
+                            hitCount = 0
+                        end
+                    else
+                        if Z.UseFly then
+                            hrp.Velocity = Vector3.new(0, Z.FlyHeight, 0)
+                        end
+                        task.wait(0.5)
+                    end
+                end
+            end
+        end
+    end)
+
+    -- === VÒNG LẶP STUCK DETECTION ===
+    spawn(function()
+        while wait(1) do
+            if Z.AutoSwitchStuck and player and player.Character then
+                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local current = hrp.Position
+                    if Z.LastPosition ~= Vector3.new(0,0,0) and (current - Z.LastPosition).Magnitude < 0.5 then
+                        Z.StuckTimer = Z.StuckTimer + 1
+                        if Z.StuckTimer >= Z.StuckCheckInterval then
+                            print("Stuck detected! Switching server...")
+                            HopServer()
+                            Z.StuckTimer = 0
+                        end
+                    else
+                        Z.StuckTimer = 0
+                    end
+                    Z.LastPosition = current
+                end
+            end
+        end
+    end)
+
+    -- === AUTO HOP SERVER ===
+    spawn(function()
+        while wait(1) do
+            if Z.HopServer then
+                wait(Z.HopInterval)
+                HopServer()
+            end
+        end
+    end)
+
+    print("Zynex Hub Premium 7.1 đã tải thành công! Dùng thử ngay.")
+end
+
+-- GỌI
+if game:IsLoaded() then
+    AutoExecute()
+else
+    game.Loaded:Connect(AutoExecute)
+end
