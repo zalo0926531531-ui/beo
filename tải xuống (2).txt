@@ -1,0 +1,553 @@
+
+-- ===== KHỞI TẠO =====
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local TeleportService = game:GetService("TeleportService")
+local VirtualUser = game:GetService("VirtualUser")
+local StarterGui = game:GetService("StarterGui")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+-- ===== CẤU HÌNH (THÊM CÁC CHỨC NĂNG MỚI) =====
+local config = {
+    -- Farm
+    AutoFarm = false,
+    AutoCollect = false,
+    AutoRaid = false,
+    AutoQuest = false,
+    AutoHeal = true,
+    -- Boss
+    AutoBossFarm = false,
+    AutoKatakuri = false,
+    AutoKatakuriV2 = false,
+    -- Sniper
+    FruitSniper = false,
+    SniperFruits = {"Leopard","Dragon","Dough","Venom","Spirit","Control","Kitsune","Mammoth"},
+    -- Race
+    AutoRace = false,
+    TargetRace = "Ghoul",
+    -- Sea
+    SeaEvent = false,
+    -- Server
+    HopServer = false,
+    HopInterval = 30,
+    AutoJoinLegendSword = false,
+    -- Items
+    AutoCDK = false,
+    AutoSoulGuitar = false,
+    AutoGodhuman = false,
+    AutoRengoku = false,
+    AutoYama = false,
+    AutoTushita = false,
+    AutoTTK = false,
+    AutoHallowScythe = false,
+    -- Teleport
+    TeleportHub = false,
+    -- Combat
+    AutoHaki = false,
+    AutoCombo = false,
+    ComboKeys = {"Z","X","C"},
+    -- Factory Kaia
+    AutoPirateRaid = false,
+    AutoFarmEctoplasm = false,
+    -- Christmas
+    AutoChristmas = false,
+    AutoFarmCandy = false,
+    TimeStopFarm = 5,
+    -- Fishing
+    AutoFish = false,
+    -- Mirage
+    AutoMirage = false,
+    -- Volcano
+    AutoVolcano = false,
+    -- Stats
+    AutoStats = false,
+    StatPriority = "Melee",
+    -- Local Player
+    ESP = false,
+    AntiAFK = true,
+    -- Setting
+    WalkSpeed = 90,
+    JumpPower = 90,
+    FarmRadius = 450,
+    AttackCooldown = 0.1,
+    HealThreshold = 0.3,
+    PriorityFruits = {"Leopard","Dragon","Dough","Venom","Spirit","Control","Kitsune","Mammoth"},
+}
+
+-- ===== TẠO GUI =====
+local gui = Instance.new("ScreenGui")
+gui.Name = "OreoHub"
+gui.Parent = player:WaitForChild("PlayerGui") or StarterGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 680, 0, 500)
+mainFrame.Position = UDim2.new(0.5, -340, 0.5, -250)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 15, 25)
+mainFrame.BackgroundTransparency = 0.1
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = gui
+
+local border = Instance.new("UIStroke")
+border.Color = Color3.fromRGB(255, 80, 150)
+border.Thickness = 2
+border.Parent = mainFrame
+
+-- Tiêu đề
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Position = UDim2.new(0, 0, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "🌸 OREO HUB"
+title.TextColor3 = Color3.fromRGB(255, 220, 240)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 24
+title.Parent = mainFrame
+
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1, 0, 0, 20)
+subtitle.Position = UDim2.new(0, 0, 0, 38)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Zynex Skid Style - Pink Edition"
+subtitle.TextColor3 = Color3.fromRGB(255, 150, 200)
+subtitle.Font = Enum.Font.SourceSans
+subtitle.TextSize = 12
+subtitle.Parent = mainFrame
+
+-- Thanh tab
+local tabBar = Instance.new("Frame")
+tabBar.Size = UDim2.new(1, -20, 0, 32)
+tabBar.Position = UDim2.new(0, 10, 0, 62)
+tabBar.BackgroundTransparency = 1
+tabBar.Parent = mainFrame
+
+local tabNames = {"Home","Farming","Setting","Fishing","Quest","Sea","Mirage","Volcano","Stats","Fruit","Local"}
+local tabButtons = {}
+local tabFrames = {}
+
+local function createTab(name)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 55, 1, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(255, 80, 150)
+    btn.BackgroundTransparency = 0.4
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 11
+    btn.Parent = tabBar
+    return btn
+end
+
+local function createTabFrame()
+    local frame = Instance.new("ScrollingFrame")
+    frame.Size = UDim2.new(1, -20, 1, -105)
+    frame.Position = UDim2.new(0, 10, 0, 98)
+    frame.BackgroundTransparency = 1
+    frame.Visible = false
+    frame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    frame.ScrollBarThickness = 4
+    frame.Parent = mainFrame
+    return frame
+end
+
+for i, name in ipairs(tabNames) do
+    local btn = createTab(name)
+    btn.Position = UDim2.new(0, (i-1)*57, 0, 0)
+    tabButtons[name] = btn
+    local frame = createTabFrame()
+    tabFrames[name] = frame
+end
+
+local function switchTab(name)
+    for _, f in pairs(tabFrames) do f.Visible = false end
+    for _, b in pairs(tabButtons) do b.BackgroundTransparency = 0.4 end
+    if tabFrames[name] then
+        tabFrames[name].Visible = true
+        tabButtons[name].BackgroundTransparency = 0.1
+    end
+end
+switchTab("Home")
+
+-- === HÀM TẠO NÚT ===
+local function createButton(parent, display, field, x, y, w, h)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, w or 120, 0, h or 32)
+    btn.Position = UDim2.new(0, x or 10, 0, y or 10)
+    btn.BackgroundColor3 = Color3.fromRGB(255, 80, 150)
+    btn.BackgroundTransparency = 0.2
+    btn.Text = display .. "\nOFF"
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 11
+    btn.TextWrapped = true
+    btn.Parent = parent
+    btn.MouseButton1Click:Connect(function()
+        config[field] = not config[field]
+        btn.Text = display .. "\n" .. (config[field] and "ON" or "OFF")
+        player:Chat("🌸 " .. display .. " " .. (config[field] and "BẬT" or "TẮT"))
+    end)
+    return btn
+end
+
+-- === HOME TAB (Y CHANG ẢNH) ===
+local homeFrame = tabFrames["Home"]
+
+-- Phần Auto Factory Kaia
+local factoryLabel = Instance.new("TextLabel")
+factoryLabel.Size = UDim2.new(1, 0, 0, 25)
+factoryLabel.Position = UDim2.new(0, 0, 0, 5)
+factoryLabel.BackgroundTransparency = 1
+factoryLabel.Text = "🌟 Auto Factory Kaia"
+factoryLabel.TextColor3 = Color3.fromRGB(255, 200, 220)
+factoryLabel.Font = Enum.Font.SourceSansBold
+factoryLabel.TextSize = 14
+factoryLabel.TextXAlignment = Enum.TextXAlignment.Left
+factoryLabel.Parent = homeFrame
+
+createButton(homeFrame, "Auto Pirate Raid", "AutoPirateRaid", 10, 35, 140, 32)
+createButton(homeFrame, "Auto Farm Ectoplasm", "AutoFarmEctoplasm", 160, 35, 140, 32)
+
+-- Phần Christmas Multi
+local xmasLabel = Instance.new("TextLabel")
+xmasLabel.Size = UDim2.new(1, 0, 0, 25)
+xmasLabel.Position = UDim2.new(0, 0, 0, 80)
+xmasLabel.BackgroundTransparency = 1
+xmasLabel.Text = "🎄 Christmas Multi"
+xmasLabel.TextColor3 = Color3.fromRGB(255, 200, 220)
+xmasLabel.Font = Enum.Font.SourceSansBold
+xmasLabel.TextSize = 14
+xmasLabel.TextXAlignment = Enum.TextXAlignment.Left
+xmasLabel.Parent = homeFrame
+
+-- Select Time Stop Farm
+local timeLabel = Instance.new("TextLabel")
+timeLabel.Size = UDim2.new(0, 150, 0, 25)
+timeLabel.Position = UDim2.new(0, 10, 0, 110)
+timeLabel.BackgroundTransparency = 1
+timeLabel.Text = "Select Time Stop Farm:"
+timeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+timeLabel.Font = Enum.Font.SourceSans
+timeLabel.TextSize = 12
+timeLabel.TextXAlignment = Enum.TextXAlignment.Left
+timeLabel.Parent = homeFrame
+
+local timeBox = Instance.new("TextBox")
+timeBox.Size = UDim2.new(0, 40, 0, 25)
+timeBox.Position = UDim2.new(0, 160, 0, 110)
+timeBox.BackgroundColor3 = Color3.fromRGB(50, 30, 50)
+timeBox.Text = "5"
+timeBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+timeBox.Font = Enum.Font.SourceSans
+timeBox.TextSize = 14
+timeBox.Parent = homeFrame
+timeBox.FocusLost:Connect(function()
+    local num = tonumber(timeBox.Text)
+    if num then config.TimeStopFarm = num end
+end)
+
+createButton(homeFrame, "Farm Level + Gift", "AutoChristmas", 10, 145, 180, 32)
+local selectIslandBtn = Instance.new("TextButton")
+selectIslandBtn.Size = UDim2.new(0, 160, 0, 28)
+selectIslandBtn.Position = UDim2.new(0, 200, 0, 145)
+selectIslandBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 100)
+selectIslandBtn.BackgroundTransparency = 0.2
+selectIslandBtn.Text = "Select Island Gift"
+selectIslandBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+selectIslandBtn.Font = Enum.Font.SourceSansBold
+selectIslandBtn.TextSize = 11
+selectIslandBtn.Parent = homeFrame
+selectIslandBtn.MouseButton1Click:Connect(function()
+    player:Chat("🌸 Chọn đảo: Jungle, Magma, Ice, Fishman...")
+end)
+
+createButton(homeFrame, "Auto Farm Candy", "AutoFarmCandy", 10, 185, 140, 32)
+
+-- Phần Christmas Event
+local xmasEventLabel = Instance.new("TextLabel")
+xmasEventLabel.Size = UDim2.new(1, 0, 0, 25)
+xmasEventLabel.Position = UDim2.new(0, 0, 0, 230)
+xmasEventLabel.BackgroundTransparency = 1
+xmasEventLabel.Text = "🎁 Christmas Event"
+xmasEventLabel.TextColor3 = Color3.fromRGB(255, 200, 220)
+xmasEventLabel.Font = Enum.Font.SourceSansBold
+xmasEventLabel.TextSize = 14
+xmasEventLabel.TextXAlignment = Enum.TextXAlignment.Left
+xmasEventLabel.Parent = homeFrame
+
+local timeGiftLabel = Instance.new("TextLabel")
+timeGiftLabel.Size = UDim2.new(1, 0, 0, 20)
+timeGiftLabel.Position = UDim2.new(0, 10, 0, 260)
+timeGiftLabel.BackgroundTransparency = 1
+timeGiftLabel.Text = "⏰ Time Gift Christmas: 00:06:25"
+timeGiftLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+timeGiftLabel.Font = Enum.Font.SourceSans
+timeGiftLabel.TextSize = 12
+timeGiftLabel.TextXAlignment = Enum.TextXAlignment.Left
+timeGiftLabel.Parent = homeFrame
+
+createButton(homeFrame, "Auto Farm Candy", "AutoFarmCandy", 10, 285, 140, 32)
+
+local selectIslandBtn2 = Instance.new("TextButton")
+selectIslandBtn2.Size = UDim2.new(0, 160, 0, 28)
+selectIslandBtn2.Position = UDim2.new(0, 160, 0, 285)
+selectIslandBtn2.BackgroundColor3 = Color3.fromRGB(200, 50, 100)
+selectIslandBtn2.BackgroundTransparency = 0.2
+selectIslandBtn2.Text = "Select Island Gift"
+selectIslandBtn2.TextColor3 = Color3.fromRGB(255, 255, 255)
+selectIslandBtn2.Font = Enum.Font.SourceSansBold
+selectIslandBtn2.TextSize = 11
+selectIslandBtn2.Parent = homeFrame
+selectIslandBtn2.MouseButton1Click:Connect(function()
+    player:Chat("🌸 Chọn đảo: Jungle, Magma, Ice, Fishman...")
+end)
+
+-- === FARMING TAB ===
+local farmingFrame = tabFrames["Farming"]
+local farmFuncs = {
+    {"Farm", "AutoFarm"},
+    {"Collect", "AutoCollect"},
+    {"Raid", "AutoRaid"},
+    {"Quest", "AutoQuest"},
+    {"Heal", "AutoHeal"},
+    {"Boss", "AutoBossFarm"},
+    {"Katakuri", "AutoKatakuri"},
+    {"Katakuri V2", "AutoKatakuriV2"},
+}
+for i, data in ipairs(farmFuncs) do
+    local col = (i-1) % 2
+    local row = math.floor((i-1) / 2)
+    createButton(farmingFrame, data[1], data[2], 10 + col*130, 10 + row*40, 120, 32)
+end
+
+-- === SETTING TAB ===
+local settingFrame = tabFrames["Setting"]
+createButton(settingFrame, "ESP", "ESP", 10, 10, 120, 32)
+createButton(settingFrame, "Anti AFK", "AntiAFK", 140, 10, 120, 32)
+
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(1, 0, 0, 20)
+speedLabel.Position = UDim2.new(0, 10, 0, 55)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "⚡ WalkSpeed: " .. config.WalkSpeed
+speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedLabel.Font = Enum.Font.SourceSans
+speedLabel.TextSize = 12
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.Parent = settingFrame
+
+local speedUp = Instance.new("TextButton")
+speedUp.Size = UDim2.new(0, 40, 0, 25)
+speedUp.Position = UDim2.new(0, 150, 0, 55)
+speedUp.BackgroundColor3 = Color3.fromRGB(255, 80, 150)
+speedUp.BackgroundTransparency = 0.2
+speedUp.Text = "+"
+speedUp.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedUp.Font = Enum.Font.SourceSansBold
+speedUp.TextSize = 16
+speedUp.Parent = settingFrame
+speedUp.MouseButton1Click:Connect(function()
+    config.WalkSpeed = config.WalkSpeed + 5
+    speedLabel.Text = "⚡ WalkSpeed: " .. config.WalkSpeed
+end)
+
+local speedDown = Instance.new("TextButton")
+speedDown.Size = UDim2.new(0, 40, 0, 25)
+speedDown.Position = UDim2.new(0, 195, 0, 55)
+speedDown.BackgroundColor3 = Color3.fromRGB(255, 80, 150)
+speedDown.BackgroundTransparency = 0.2
+speedDown.Text = "-"
+speedDown.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedDown.Font = Enum.Font.SourceSansBold
+speedDown.TextSize = 16
+speedDown.Parent = settingFrame
+speedDown.MouseButton1Click:Connect(function()
+    config.WalkSpeed = math.max(20, config.WalkSpeed - 5)
+    speedLabel.Text = "⚡ WalkSpeed: " .. config.WalkSpeed
+end)
+
+-- === FISHING TAB ===
+local fishingFrame = tabFrames["Fishing"]
+createButton(fishingFrame, "Auto Fish", "AutoFish", 10, 10, 150, 40)
+
+-- === QUEST TAB ===
+local questFrame = tabFrames["Quest"]
+createButton(questFrame, "Auto Quest", "AutoQuest", 10, 10, 150, 40)
+
+-- === SEA TAB ===
+local seaFrame = tabFrames["Sea"]
+createButton(seaFrame, "Sea Beast", "SeaEvent", 10, 10, 150, 40)
+
+-- === MIRAGE TAB ===
+local mirageFrame = tabFrames["Mirage"]
+createButton(mirageFrame, "Auto Mirage", "AutoMirage", 10, 10, 150, 40)
+
+-- === VOLCANO TAB ===
+local volcanoFrame = tabFrames["Volcano"]
+createButton(volcanoFrame, "Auto Volcano", "AutoVolcano", 10, 10, 150, 40)
+
+-- === STATS TAB ===
+local statsFrame = tabFrames["Stats"]
+createButton(statsFrame, "Auto Stats", "AutoStats", 10, 10, 150, 40)
+
+-- === FRUIT TAB ===
+local fruitFrame = tabFrames["Fruit"]
+createButton(fruitFrame, "Fruit Sniper", "FruitSniper", 10, 10, 150, 40)
+
+-- === LOCAL PLAYER TAB ===
+local localFrame = tabFrames["Local"]
+createButton(localFrame, "ESP", "ESP", 10, 10, 120, 32)
+
+-- Nút đóng GUI
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0.08, 0, 0.05, 0)
+closeBtn.Position = UDim2.new(0.46, 0, 0.93, 0)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 80)
+closeBtn.Text = "Đóng"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.TextSize = 14
+closeBtn.Parent = mainFrame
+closeBtn.MouseButton1Click:Connect(function()
+    gui.Enabled = false
+end)
+
+-- ===== CÁC HÀM CHỨC NĂNG (GIỮ NGUYÊN TỪ CÁC BẢN TRƯỚC) =====
+-- 1. Tìm Remote
+local function findRemote(possibleNames)
+    for _, container in pairs({ReplicatedStorage, Workspace}) do
+        for _, name in ipairs(possibleNames) do
+            local rem = container:FindFirstChild(name)
+            if rem and rem:IsA("RemoteEvent") then return rem end
+        end
+        for _, child in pairs(container:GetDescendants()) do
+            if child:IsA("RemoteEvent") then
+                for _, name in ipairs(possibleNames) do
+                    if string.find(child.Name, name) then return child end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local cache = {Attack = nil, Collect = nil, Heal = nil, Quest = nil, Race = nil}
+local function getRemote(name)
+    if cache[name] then return cache[name] end
+    local names = {Attack={"Combat","Attack","Click","Hit"}, Collect={"Collect","Pickup","Grab"}, Heal={"Heal","Restore","Recover"}, Quest={"Quest","Mission","Accept"}, Race={"Race","Reroll","ChangeRace"}}
+    local rem = findRemote(names[name] or {})
+    cache[name] = rem
+    return rem
+end
+
+-- 2. Tìm quái, trái
+local function getNearestMonster()
+    local best, dist = nil, math.huge
+    local kw = {"NPC","Boss","Monster","Enemy","Mob","Pirate","Bandit","Gorilla","Swan","Diamond"}
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then
+            if v ~= character and v.Humanoid.Health > 0 then
+                for _, k in ipairs(kw) do
+                    if (v.Name or ""):find(k) then
+                        local d = (rootPart.Position - v.HumanoidRootPart.Position).Magnitude
+                        if d < dist and d < config.FarmRadius then best = v; dist = d end
+                        break
+                    end
+                end
+            end
+        end
+    end
+    return best
+end
+
+local function getNearestFruit()
+    local best, dist = nil, math.huge
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("Part") and (v.Name:find("Fruit") or v.Name:find("Banana") or v:FindFirstChild("Handle")) then
+            local name = v.Name
+            if v.Parent and v.Parent:FindFirstChild("Name") then name = v.Parent.Name end
+            local pre = false
+            for _, p in pairs(config.PriorityFruits) do
+                if name:find(p) then pre = true; break end
+            end
+            local d = (rootPart.Position - v.Position).Magnitude
+            if pre and d < dist and d < 600 then best = v; dist = d
+            elseif not pre and d < dist and d < 400 then best = v; dist = d end
+        end
+    end
+    return best
+end
+
+-- 3. Tấn công, nhặt, heal, quest, raid
+local function attackMonster(target)
+    if not target then return end
+    pcall(function()
+        rootPart.CFrame = CFrame.new(rootPart.Position, target.HumanoidRootPart.Position)
+        local atk = getRemote("Attack")
+        if atk then atk:FireServer("Click") end
+    end)
+end
+
+local function collectFruit(fruit)
+    if not fruit then return end
+    pcall(function()
+        rootPart.CFrame = CFrame.new(fruit.Position + Vector3.new(0,2.5,0))
+        local touch = fruit:FindFirstChild("TouchInterest")
+        if touch then touch:FireServer() end
+        local col = getRemote("Collect")
+        if col then col:FireServer(fruit) end
+        player:Chat("🍌 Nhặt: " .. (fruit.Name or "Trái"))
+    end)
+end
+
+local function heal()
+    if humanoid.Health / humanoid.MaxHealth < config.HealThreshold then
+        pcall(function()
+            local pack = player:FindFirstChild("Backpack") or player:FindFirstChild("Inventory")
+            if pack then
+                for _, item in pairs(pack:GetDescendants()) do
+                    if item:IsA("Tool") and (item.Name:find("Potion") or item.Name:find("Heal") or item.Name:find("Food")) then
+                        item.Parent = character; item:Activate(); wait(0.3); item.Parent = pack; return
+                    end
+                end
+            end
+            local healR = getRemote("Heal")
+            if healR then healR:FireServer() end
+        end)
+    end
+end
+
+local function autoQuest()
+    pcall(function()
+        local npcs = {"Monkey","Gorilla","Pirate","Bandit","Swan","Diamond","Jungle","Ice","Magma","Fishman","NPC"}
+        for _, name in pairs(npcs) do
+            local npc = Workspace:FindFirstChild(name)
+            if npc and npc:FindFirstChild("HumanoidRootPart") then
+                if (rootPart.Position - npc.HumanoidRootPart.Position).Magnitude < 30 then
+                    local click = npc:FindFirstChild("ClickDetector")
+                    if click then click:FireClick() end
+                    local q = getRemote("Quest")
+                    if q then q:FireServer("Accept", npc) end
+                    break
+                end
+            end
+        end
+    end)
+end
+
+local function autoRaid()
+    pcall(function()
+        local raid = Workspace:FindFirstChild("RaidNPC") or Workspace:FindFirstChild("MysteriousBeing")
+        if raid then
+            rootPart.CFrame = raid.HumanoidRootPart.CFrame * CFrame.new(0,0,-3)
+            local click = raid:FindFirstChild("ClickDetector")
+            if click then click:FireClick() end
+        end
+    end)
+e
