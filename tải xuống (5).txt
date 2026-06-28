@@ -1,0 +1,562 @@
+ _________________________________________________________________
+|                                                                 |
+|  [ OREO HUB - DRAGON EDITION FULL ]                             |
+|  TARGET: Blox Fruits - THÊM CHỨC NĂNG LẤY DAI (BELT) + DRAGON |
+|  TÍCH HỢP ĐẦY ĐỦ TAB HOME, FARM, RAID, QUEST, ESP, DRAGON,    |
+|  SETTING. AUTO FARM DAI, TỘC RỒNG, SÚNG, KIẾM.                |
+|  KHÔNG KEY - UPLOAD SẴN SÀNG.                                  |
+|_________________________________________________________________|
+*/
+
+-- ================================================================
+-- OREO HUB - DRAGON EDITION (CÓ AUTO LẤY DAI)
+-- ================================================================
+
+print("🌸 OREO HUB - DRAGON EDITION FULL - LOADING...")
+
+wait(2)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local TeleportService = game:GetService("TeleportService")
+local VirtualUser = game:GetService("VirtualUser")
+local StarterGui = game:GetService("StarterGui")
+
+local player = Players.LocalPlayer
+if not player then return end
+
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+-- === CẤU HÌNH MỞ RỘNG ===
+local config = {
+    AutoFarm = false,
+    AutoCollect = false,
+    AutoRaid = false,
+    AutoQuest = false,
+    AutoHeal = true,
+    AutoBoss = false,
+    ESP = false,
+    WalkSpeed = 90,
+    JumpPower = 90,
+    FarmRadius = 400,
+    AttackSpeed = 0.15,
+    HealAt = 30,
+    -- Dragon
+    AutoFindDragon = false,
+    AutoGetDragonRace = false,
+    AutoGetDragonGun = false,
+    AutoGetDragonSword = false,
+    -- Belt (DAI)
+    AutoGetBelt = false,
+    AutoFarmBelt = false,
+}
+
+-- === TẠO GUI ===
+local gui = Instance.new("ScreenGui")
+gui.Name = "OreoHubDragonFull"
+
+local success, err = pcall(function()
+    gui.Parent = player:WaitForChild("PlayerGui", 5)
+end)
+if not success then
+    gui.Parent = StarterGui
+end
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 400, 0, 480)
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -240)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 10, 25)
+mainFrame.BackgroundTransparency = 0.15
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = gui
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(255, 80, 150)
+stroke.Thickness = 2
+stroke.Parent = mainFrame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 45)
+title.Position = UDim2.new(0, 0, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "🌸 OREO HUB (DRAGON + DAI)"
+title.TextColor3 = Color3.fromRGB(255, 220, 240)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 20
+title.Parent = mainFrame
+
+-- Thanh tab
+local tabBar = Instance.new("Frame")
+tabBar.Size = UDim2.new(1, -10, 0, 30)
+tabBar.Position = UDim2.new(0, 5, 0, 52)
+tabBar.BackgroundTransparency = 1
+tabBar.Parent = mainFrame
+
+local tabNames = {"Home","Farm","Raid","Quest","ESP","Dragon","Belt","Setting"}
+local tabButtons = {}
+local tabFrames = {}
+
+local function createTab(name)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 45, 1, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(255, 80, 150)
+    btn.BackgroundTransparency = 0.4
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 10
+    btn.Parent = tabBar
+    return btn
+end
+
+local function createTabFrame()
+    local frame = Instance.new("ScrollingFrame")
+    frame.Size = UDim2.new(1, -10, 1, -100)
+    frame.Position = UDim2.new(0, 5, 0, 87)
+    frame.BackgroundTransparency = 1
+    frame.Visible = false
+    frame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    frame.ScrollBarThickness = 4
+    frame.Parent = mainFrame
+    return frame
+end
+
+for i, name in ipairs(tabNames) do
+    local btn = createTab(name)
+    btn.Position = UDim2.new(0, (i-1)*47, 0, 0)
+    tabButtons[name] = btn
+    local frame = createTabFrame()
+    tabFrames[name] = frame
+end
+
+local function switchTab(name)
+    for _, f in pairs(tabFrames) do f.Visible = false end
+    for _, b in pairs(tabButtons) do b.BackgroundTransparency = 0.4 end
+    if tabFrames[name] then
+        tabFrames[name].Visible = true
+        tabButtons[name].BackgroundTransparency = 0.1
+    end
+end
+switchTab("Home")
+
+-- Hàm tạo nút
+local function makeBtn(parent, text, field, x, y, w, h)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, w or 100, 0, h or 32)
+    btn.Position = UDim2.new(0, x or 10, 0, y or 10)
+    btn.BackgroundColor3 = Color3.fromRGB(255, 80, 150)
+    btn.BackgroundTransparency = 0.2
+    btn.Text = text .. "\nOFF"
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 11
+    btn.TextWrapped = true
+    btn.Parent = parent
+    btn.MouseButton1Click:Connect(function()
+        config[field] = not config[field]
+        btn.Text = text .. "\n" .. (config[field] and "ON" or "OFF")
+        player:Chat("🌸 " .. text .. " " .. (config[field] and "BẬT" or "TẮT"))
+    end)
+    return btn
+end
+
+-- === TAB HOME ===
+local homeFrame = tabFrames["Home"]
+makeBtn(homeFrame, "Farm", "AutoFarm", 10, 10, 110, 35)
+makeBtn(homeFrame, "Collect", "AutoCollect", 130, 10, 110, 35)
+makeBtn(homeFrame, "Boss", "AutoBoss", 10, 55, 110, 35)
+makeBtn(homeFrame, "Raid", "AutoRaid", 130, 55, 110, 35)
+
+-- === TAB FARM ===
+local farmFrame = tabFrames["Farm"]
+makeBtn(farmFrame, "Farm", "AutoFarm", 10, 10, 110, 35)
+makeBtn(farmFrame, "Collect", "AutoCollect", 130, 10, 110, 35)
+makeBtn(farmFrame, "Boss", "AutoBoss", 10, 55, 110, 35)
+makeBtn(farmFrame, "Heal", "AutoHeal", 130, 55, 110, 35)
+
+-- === TAB RAID ===
+local raidFrame = tabFrames["Raid"]
+makeBtn(raidFrame, "Raid", "AutoRaid", 10, 10, 150, 40)
+
+-- === TAB QUEST ===
+local questFrame = tabFrames["Quest"]
+makeBtn(questFrame, "Quest", "AutoQuest", 10, 10, 150, 40)
+
+-- === TAB ESP ===
+local espFrame = tabFrames["ESP"]
+makeBtn(espFrame, "ESP", "ESP", 10, 10, 150, 40)
+
+-- === TAB DRAGON ===
+local dragonFrame = tabFrames["Dragon"]
+makeBtn(dragonFrame, "Find Dragon", "AutoFindDragon", 10, 10, 140, 35)
+makeBtn(dragonFrame, "Get Dragon Race", "AutoGetDragonRace", 160, 10, 140, 35)
+makeBtn(dragonFrame, "Get Dragon Gun", "AutoGetDragonGun", 10, 55, 140, 35)
+makeBtn(dragonFrame, "Get Dragon Sword", "AutoGetDragonSword", 160, 55, 140, 35)
+
+-- === TAB BELT (DAI) ===
+local beltFrame = tabFrames["Belt"]
+makeBtn(beltFrame, "Auto Get Belt", "AutoGetBelt", 10, 10, 150, 40)
+makeBtn(beltFrame, "Auto Farm Belt", "AutoFarmBelt", 170, 10, 150, 40)
+
+-- === TAB SETTING ===
+local settingFrame = tabFrames["Setting"]
+makeBtn(settingFrame, "Heal", "AutoHeal", 10, 10, 110, 35)
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(1, 0, 0, 20)
+speedLabel.Position = UDim2.new(0, 10, 0, 55)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "⚡ WalkSpeed: " .. config.WalkSpeed
+speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedLabel.Font = Enum.Font.SourceSans
+speedLabel.TextSize = 12
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.Parent = settingFrame
+
+local speedUp = Instance.new("TextButton")
+speedUp.Size = UDim2.new(0, 40, 0, 25)
+speedUp.Position = UDim2.new(0, 150, 0, 55)
+speedUp.BackgroundColor3 = Color3.fromRGB(255, 80, 150)
+speedUp.BackgroundTransparency = 0.2
+speedUp.Text = "+"
+speedUp.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedUp.Font = Enum.Font.SourceSansBold
+speedUp.TextSize = 16
+speedUp.Parent = settingFrame
+speedUp.MouseButton1Click:Connect(function()
+    config.WalkSpeed = config.WalkSpeed + 5
+    speedLabel.Text = "⚡ WalkSpeed: " .. config.WalkSpeed
+end)
+
+local speedDown = Instance.new("TextButton")
+speedDown.Size = UDim2.new(0, 40, 0, 25)
+speedDown.Position = UDim2.new(0, 195, 0, 55)
+speedDown.BackgroundColor3 = Color3.fromRGB(255, 80, 150)
+speedDown.BackgroundTransparency = 0.2
+speedDown.Text = "-"
+speedDown.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedDown.Font = Enum.Font.SourceSansBold
+speedDown.TextSize = 16
+speedDown.Parent = settingFrame
+speedDown.MouseButton1Click:Connect(function()
+    config.WalkSpeed = math.max(20, config.WalkSpeed - 5)
+    speedLabel.Text = "⚡ WalkSpeed: " .. config.WalkSpeed
+end)
+
+-- Nút đóng
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0.2, 0, 0.07, 0)
+closeBtn.Position = UDim2.new(0.4, 0, 0.91, 0)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 80)
+closeBtn.Text = "Đóng"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.TextSize = 14
+closeBtn.Parent = mainFrame
+closeBtn.MouseButton1Click:Connect(function()
+    gui.Enabled = false
+end)
+
+-- ================================================================
+-- ===== CÁC HÀM CHỨC NĂNG =======================================
+-- ================================================================
+
+-- HÀM TÌM REMOTE (TỰ ĐỘNG)
+local function findRemote(possibleNames)
+    for _, container in pairs({ReplicatedStorage, Workspace}) do
+        for _, name in ipairs(possibleNames) do
+            local rem = container:FindFirstChild(name)
+            if rem and rem:IsA("RemoteEvent") then return rem end
+        end
+        for _, child in pairs(container:GetDescendants()) do
+            if child:IsA("RemoteEvent") then
+                for _, name in ipairs(possibleNames) do
+                    if string.find(child.Name, name) then return child end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local cache = {Attack = nil, Collect = nil, Heal = nil, Quest = nil}
+
+local function getRemote(name)
+    if cache[name] then return cache[name] end
+    local names = {
+        Attack={"Combat","Attack","Click","Hit"},
+        Collect={"Collect","Pickup","Grab"},
+        Heal={"Heal","Restore","Recover"},
+        Quest={"Quest","Mission","Accept"}
+    }
+    local rem = findRemote(names[name] or {})
+    cache[name] = rem
+    return rem
+end
+
+-- HÀM TÌM QUÁI
+local function getMonster()
+    local best, dist = nil, math.huge
+    local keywords = {"NPC","Boss","Monster","Enemy","Mob","Pirate","Bandit","Gorilla","Swan","Diamond"}
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then
+            if v ~= character and v.Humanoid.Health > 0 then
+                local name = v.Name or ""
+                for _, kw in ipairs(keywords) do
+                    if name:find(kw) then
+                        local d = (rootPart.Position - v.HumanoidRootPart.Position).Magnitude
+                        if d < dist and d < config.FarmRadius then
+                            best = v; dist = d
+                        end
+                        break
+                    end
+                end
+            end
+        end
+    end
+    return best
+end
+
+-- HÀM TÌM TRÁI
+local function getFruit()
+    local best, dist = nil, math.huge
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("Part") and (v.Name:find("Fruit") or v.Name:find("Banana") or v:FindFirstChild("Handle")) then
+            local d = (rootPart.Position - v.Position).Magnitude
+            if d < dist and d < 500 then
+                best = v; dist = d
+            end
+        end
+    end
+    return best
+end
+
+-- TẤN CÔNG
+local function attack(target)
+    if not target then return end
+    pcall(function()
+        rootPart.CFrame = CFrame.new(rootPart.Position, target.HumanoidRootPart.Position)
+        local atk = getRemote("Attack")
+        if atk then atk:FireServer("Click") end
+    end)
+end
+
+-- NHẶT TRÁI
+local function collect(fruit)
+    if not fruit then return end
+    pcall(function()
+        rootPart.CFrame = CFrame.new(fruit.Position + Vector3.new(0,2,0))
+        local touch = fruit:FindFirstChild("TouchInterest")
+        if touch then touch:FireServer() end
+        local col = getRemote("Collect")
+        if col then col:FireServer(fruit) end
+    end)
+end
+
+-- HỒI MÁU
+local function heal()
+    if humanoid.Health / humanoid.MaxHealth * 100 < config.HealAt then
+        pcall(function()
+            local pack = player:FindFirstChild("Backpack") or player:FindFirstChild("Inventory")
+            if pack then
+                for _, item in pairs(pack:GetDescendants()) do
+                    if item:IsA("Tool") and (item.Name:find("Potion") or item.Name:find("Heal") or item.Name:find("Food")) then
+                        item.Parent = character
+                        item:Activate()
+                        wait(0.3)
+                        item.Parent = pack
+                        return
+                    end
+                end
+            end
+            local he = getRemote("Heal")
+            if he then he:FireServer() end
+        end)
+    end
+end
+
+-- QUEST
+local function quest()
+    pcall(function()
+        local npcs = {"Monkey","Gorilla","Pirate","Bandit","Swan","Diamond","Jungle","Ice","Magma","Fishman","NPC"}
+        for _, name in pairs(npcs) do
+            local npc = Workspace:FindFirstChild(name)
+            if npc and npc:FindFirstChild("HumanoidRootPart") then
+                if (rootPart.Position - npc.HumanoidRootPart.Position).Magnitude < 30 then
+                    local click = npc:FindFirstChild("ClickDetector")
+                    if click then click:FireClick() end
+                    local q = getRemote("Quest")
+                    if q then q:FireServer("Accept", npc) end
+                    break
+                end
+            end
+        end
+    end)
+end
+
+-- RAID
+local function raid()
+    pcall(function()
+        local r = Workspace:FindFirstChild("RaidNPC") or Workspace:FindFirstChild("MysteriousBeing")
+        if r and r:FindFirstChild("HumanoidRootPart") then
+            rootPart.CFrame = r.HumanoidRootPart.CFrame * CFrame.new(0,0,-3)
+            local click = r:FindFirstChild("ClickDetector")
+            if click then click:FireClick() end
+        end
+    end)
+end
+
+-- ================================================================
+-- === CHỨC NĂNG DRAGON ===========================================
+-- ================================================================
+
+local function findDragonIsland()
+    if not config.AutoFindDragon then return end
+    pcall(function()
+        local dragon = Workspace:FindFirstChild("DragonIsland") or Workspace:FindFirstChild("Dragon")
+        if dragon and dragon:FindFirstChild("HumanoidRootPart") then
+            rootPart.CFrame = dragon.HumanoidRootPart.CFrame * CFrame.new(0, 0, -10)
+            player:Chat("🌸 Đã tìm thấy Dragon Island!")
+        else
+            player:Chat("🌸 Đang tìm Dragon Island...")
+        end
+    end)
+end
+
+local function getDragonRace()
+    if not config.AutoGetDragonRace then return end
+    pcall(function()
+        local npc = Workspace:FindFirstChild("DragonNPC") or Workspace:FindFirstChild("Dragon")
+        if npc and npc:FindFirstChild("HumanoidRootPart") then
+            rootPart.CFrame = npc.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+            local click = npc:FindFirstChild("ClickDetector")
+            if click then click:FireClick() end
+            player:Chat("🌸 Đang nhận tộc Rồng...")
+        end
+    end)
+end
+
+local function getDragonGun()
+    if not config.AutoGetDragonGun then return end
+    pcall(function()
+        local npc = Workspace:FindFirstChild("DragonGun") or Workspace:FindFirstChild("Dragon")
+        if npc and npc:FindFirstChild("HumanoidRootPart") then
+            rootPart.CFrame = npc.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+            local click = npc:FindFirstChild("ClickDetector")
+            if click then click:FireClick() end
+            player:Chat("🌸 Đang nhận súng Rồng...")
+        end
+    end)
+end
+
+local function getDragonSword()
+    if not config.AutoGetDragonSword then return end
+    pcall(function()
+        local npc = Workspace:FindFirstChild("DragonSword") or Workspace:FindFirstChild("Dragon")
+        if npc and npc:FindFirstChild("HumanoidRootPart") then
+            rootPart.CFrame = npc.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+            local click = npc:FindFirstChild("ClickDetector")
+            if click then click:FireClick() end
+            player:Chat("🌸 Đang nhận kiếm Rồng...")
+        end
+    end)
+end
+
+-- ================================================================
+-- === CHỨC NĂNG DAI (BELT) =======================================
+-- ================================================================
+
+local function getBelt()
+    if not config.AutoGetBelt then return end
+    pcall(function()
+        local belt = Workspace:FindFirstChild("Belt") or Workspace:FindFirstChild("Dai")
+        if belt and belt:FindFirstChild("HumanoidRootPart") then
+            rootPart.CFrame = belt.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+            local click = belt:FindFirstChild("ClickDetector")
+            if click then click:FireClick() end
+            player:Chat("🌸 Đã nhận dai!")
+        else
+            player:Chat("🌸 Đang tìm dai...")
+        end
+    end)
+end
+
+local function farmBelt()
+    if not config.AutoFarmBelt then return end
+    pcall(function()
+        local mob = Workspace:FindFirstChild("BeltMob") or Workspace:FindFirstChild("DaiMob")
+        if mob and mob:FindFirstChild("Humanoid") then
+            attack(mob)
+        end
+    end)
+end
+
+-- ================================================================
+-- === ESP =========================================================
+-- ================================================================
+
+local espFolder = Instance.new("Folder", Workspace)
+espFolder.Name = "OreoESP"
+local function makeESP(obj)
+    if not config.ESP then return end
+    pcall(function()
+        if not obj:IsA("Model") or not obj:FindFirstChild("HumanoidRootPart") then return end
+        if obj == character then return end
+        local box = Instance.new("BoxHandleAdornment")
+        box.Adornee = obj.HumanoidRootPart
+        box.Size = Vector3.new(4,6,2)
+        box.Color3 = obj:FindFirstChild("Humanoid") and Color3.new(1,0,0) or Color3.new(0,1,0)
+        box.Transparency = 0.3
+        box.AlwaysOnTop = true
+        box.Parent = espFolder
+        local tag = Instance.new("BillboardGui")
+        tag.Adornee = obj.HumanoidRootPart
+        tag.Size = UDim2.new(0,200,0,50)
+        tag.StudsOffset = Vector3.new(0,3,0)
+        tag.AlwaysOnTop = true
+        local label = Instance.new("TextLabel", tag)
+        label.Size = UDim2.new(1,0,1,0)
+        label.BackgroundTransparency = 1
+        label.Text = obj.Name .. (obj:FindFirstChild("Humanoid") and " HP:" .. math.floor(obj.Humanoid.Health) or "")
+        label.TextColor3 = Color3.new(1,1,0)
+        label.TextScaled = true
+        tag.Parent = espFolder
+    end)
+end
+Workspace.DescendantAdded:Connect(makeESP)
+for _, v in pairs(Workspace:GetDescendants()) do makeESP(v) end
+
+-- ================================================================
+-- === VÒNG LẶP CHÍNH =============================================
+-- ================================================================
+
+local timers = {
+    atk=0, q=0, r=0, heal=0,
+    dragon=0, belt=0
+}
+
+RunService.Heartbeat:Connect(function(dt)
+    pcall(function()
+        humanoid.WalkSpeed = config.WalkSpeed
+        humanoid.JumpPower = config.JumpPower
+
+        -- HEAL
+        timers.heal = timers.heal + dt
+        if timers.heal >= 1.5 and config.AutoHeal then heal(); timers.heal = 0 end
+
+        -- QUEST
+        timers.q = timers.q + dt
+        if timers.q >= 20 and config.AutoQuest then quest(); timers.q = 0 end
+
+        -- RAID
+        timers.r = timers.r + dt
+        if timers.r >= 40 and config.AutoRaid then raid(); timers.r = 0 end
+
+        -- DRAGON
+        if config.AutoFindDragon then
+            timers.dragon = timers.dragon + 
